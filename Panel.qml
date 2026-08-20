@@ -39,8 +39,8 @@ Panel {
   function fmtSpeed(bytesPerSec) {
     var v = Number(bytesPerSec) || 0
     if (v <= 0) return ""
-    if (v < 1048576) return (v / 1024).toFixed(0) + " kB/s"
-    return (v / 1048576).toFixed(1) + " MB/s"
+    if (v < 1048576) return (v / 1024).toFixed(0) + "k"
+    return (v / 1048576).toFixed(1) + "M"
   }
 
   function fmtSize(bytes) {
