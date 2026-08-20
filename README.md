@@ -18,7 +18,7 @@ want in the moment; anything heavier is better done in [AriaNg](https://ariang.m
 ## Install
 
 ```bash
-omarchy plugin add https://github.com/rawritude/omarchy-aria2.git --enable
+omarchy plugin add https://github.com/PraiseTheDuck/omarchy-aria2.git
 omarchy bar move io.github.rawritude.aria2 --section right
 ```
 
