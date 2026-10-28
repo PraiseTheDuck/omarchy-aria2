@@ -94,12 +94,6 @@ Panel {
     function ui(): void { aria2.openUi() }
   }
 
-  // BarIconButton draws `text` through OpticalGlyph into a fixed square canvas
-  // (Style.bar.iconCanvas, 16px by default) inside a slot of Style.bar.iconSlot
-  // (27px). It is built for one centered glyph. An iconComponent holding a Row
-  // of glyph + speed + count has nowhere to render and the slot never grows to
-  // fit it. omarchy.power has the same problem with its battery percentage and
-  // solves it by putting everything in `text` and widening slotSize, so do that.
   // nf-md-download. Built from its codepoint rather than pasted as a literal:
   // a literal sits outside the BMP and does not survive every editor or
   // pipeline, and when it is silently lost the label becomes "", which makes
@@ -120,33 +114,39 @@ Panel {
 
   readonly property bool verticalBar: bar ? bar.vertical : false
 
-  readonly property string barLabel: {
-    var glyph = root.downloadGlyph
-    // In a left/right bar the slot is a narrow column and nothing clips the
-    // label, so a horizontal "1.2 MB/s" would paint straight over the
-    // neighbouring widgets. omarchy.power gates its percentage the same way.
-    if (root.verticalBar) return glyph
-    if (aria2.numActive > 0) {
-      var s = root.fmtSpeed(aria2.downloadSpeed)
-      return s !== "" ? s + " " + glyph : glyph
-    }
-    if (aria2.numWaiting > 0) return "+" + aria2.numWaiting + " " + glyph
-    return glyph
+  // Speed and the waiting count are a label beside the glyph, the same way
+  // omarchy.power shows a percentage. `text` goes through OpticalGlyph, which
+  // scales the whole string into the icon canvas, so "1.2M" painted there is
+  // only a few pixels tall. A vertical bar is a narrow column and nothing
+  // clips a horizontal label, so the readout stays off it.
+  readonly property string barReadout: {
+    if (root.verticalBar) return ""
+    if (aria2.numActive > 0) return root.fmtSpeed(aria2.downloadSpeed)
+    if (aria2.numWaiting > 0) return "+" + aria2.numWaiting
+    return ""
   }
 
   BarIconButton {
     id: button
     anchors.fill: parent
     bar: root.bar
-    text: root.barLabel
-    // Only widen when there is more than the glyph to show, and never in a
-    // vertical bar, where the slot is height-constrained instead.
-    //
-    // Compare against the glyph rather than testing barLabel.length: U+F01DA is
-    // outside the BMP, so JS stores it as a surrogate pair and `.length` is 2
-    // for the bare glyph. A `length > 1` test is therefore always true and the
-    // slot sits permanently at 2.4x, padding the icon with dead space.
-    slotSize: Style.bar.iconSlot * (root.barLabel !== root.downloadGlyph && !vertical ? 2.4 : 1)
+    text: root.downloadGlyph
+    labelText: root.barReadout
+    // Idle: a normal icon slot. With a readout, grow by the label, the gap
+    // BarIconButton inserts before the canvas, and the side padding an icon
+    // slot already has around that canvas.
+    TextMetrics {
+      id: readoutMetrics
+      font.family: button.fontFamily
+      font.pixelSize: button.fontSize
+      text: root.barReadout
+    }
+    slotSize: {
+      if (root.barReadout === "") return Style.bar.iconSlot
+      var content = readoutMetrics.advanceWidth + Style.space(4) + Style.bar.iconCanvas
+      var side = Math.max(0, Style.bar.iconSlot - Style.bar.iconCanvas)
+      return Math.ceil(content + side)
+    }
     // Highlight while transferring; the glyph colour is otherwise the bar's.
     active: aria2.numActive > 0
     onPressed: function(buttonCode) {
